@@ -25,8 +25,8 @@ echo "[1] Updating Termux packages..."
 pkg update -y && pkg upgrade -y
 
 echo
-echo "[2] Installing required packages (OpenJDK, git, unzip, wget, gradle)..."
-pkg install -y openjdk-17 git unzip wget gradle
+echo "[2] Installing required packages (OpenJDK, git, unzip, wget, gradle, aapt2)..."
+pkg install -y openjdk-17 git unzip wget gradle aapt2
 
 echo
 echo "[3] Checking storage access..."
@@ -45,7 +45,7 @@ echo "[4] Checking Android SDK at: $SDK_DIR"
 if [ -d "$SDK_DIR" ]; then
   echo "[i] Existing Android SDK detected."
 else
-  echo "[i] No Android SDK found."
+  echo "[i] No Android SDK found at $SDK_DIR."
 
   read -rp "Download and install Android SDK for Termux now? (y/N): " ans_sdk
 
@@ -86,7 +86,7 @@ echo "[5] Checking Android NDK at: $NDK_DIR"
 if [ -d "$NDK_DIR" ]; then
   echo "[i] Existing Android NDK detected."
 else
-  echo "[i] No Android NDK found."
+  echo "[i] No Android NDK found at $NDK_DIR."
   echo "    NDK is optional unless your projects use native C/C++ code."
 
   read -rp "Download and install Android NDK for Termux now? (y/N): " ans_ndk
@@ -140,6 +140,42 @@ if ! grep -q "AndroidAppsCompile SDK/NDK config" "$SHELL_RC" 2>/dev/null; then
   echo "[✓] Environment variables appended to $SHELL_RC"
 else
   echo "[i] Environment section already exists in $SHELL_RC. Skipping."
+fi
+
+echo
+echo "[7] Checking Android SDK Platform 35 (for compileSdk 35)..."
+
+if [ -d "$SDK_DIR" ]; then
+  if [ -f "$SDK_DIR/platforms/android-35/android.jar" ]; then
+    echo "[i] Android SDK Platform 35 already installed."
+  else
+    SDKMANAGER="$SDK_DIR/cmdline-tools/latest/bin/sdkmanager"
+    if [ -x "$SDKMANAGER" ]; then
+      echo "[i] Android SDK Platform 35 is not installed yet."
+      read -rp "Install Android SDK Platform 35 and Build-Tools 35.0.0 now? (y/N): " ans_p35
+      case "$ans_p35" in
+        y|Y)
+          echo "[i] Installing Android SDK Platform 35 and Build-Tools 35.0.0..."
+          yes | "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+          if [ -f "$SDK_DIR/platforms/android-35/android.jar" ]; then
+            echo "[✓] Android SDK Platform 35 installed successfully."
+          else
+            echo "[!] Platform 35 installation attempted but android.jar not found."
+          fi
+          ;;
+        *)
+          echo "[!] Skipping Platform 35 installation."
+          echo "    If you use compileSdk 35, you must install it manually."
+          ;;
+      esac
+    else
+      echo "[!] sdkmanager not found or not executable at:"
+      echo "    $SDK_DIR/cmdline-tools/latest/bin/sdkmanager"
+      echo "    Platform 35 cannot be installed automatically."
+    fi
+  fi
+else
+  echo "[!] SDK directory $SDK_DIR does not exist, skipping Platform 35 check."
 fi
 
 echo

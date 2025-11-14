@@ -1,10 +1,17 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # AndroidAppsCompile by Gustyx-Power
-# Simple Android project selector + Gradle build helper for Termux
+# Simple Android project selector + Gradle build helper for Termux or desktop
 
 APP_NAME="AndroidAppsCompile by Gustyx-Power"
 APPS_DIR="/sdcard/AppsCompile"
 BUILDS_DIR="$APPS_DIR/Builds"
+
+is_termux() {
+  case "$PREFIX" in
+    *com.termux*) return 0 ;;
+    *)            return 1 ;;
+  esac
+}
 
 print_banner() {
   clear
@@ -12,10 +19,17 @@ print_banner() {
   echo "  $APP_NAME"
   echo "========================================"
   echo
+
+  if is_termux; then
+    echo "[i] Environment: Termux (Android)"
+  else
+    echo "[i] Environment: non-Termux (desktop/WSL/etc.)"
+  fi
+  echo
 }
 
 ensure_storage() {
-  if [ ! -d "/sdcard" ]; then
+  if is_termux && [ ! -d "/sdcard" ]; then
     echo "[!] /sdcard is not accessible."
     echo "    Run: termux-setup-storage"
     exit 1
@@ -41,14 +55,56 @@ ensure_project_dirs() {
 }
 
 check_android_env() {
-  if [ -z "$ANDROID_SDK_ROOT" ] && [ -z "$ANDROID_HOME" ]; then
-    echo "[!] ANDROID_SDK_ROOT / ANDROID_HOME are not set."
+  local sdk_root="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+
+  # fallback ke default SDK_DIR kalau env kosong
+  if [ -z "$sdk_root" ]; then
+    sdk_root="$PREFIX/opt/android-sdk"
+  fi
+
+  if [ ! -d "$sdk_root" ]; then
+    echo "[!] Android SDK root not found at: $sdk_root"
     echo "    Make sure you have run the installer and sourced your shell rc."
     echo
+    return
+  fi
+
+  echo "[i] Android SDK environment detected."
+  echo "    SDK root: $sdk_root"
+
+  if [ ! -f "$sdk_root/platforms/android-35/android.jar" ]; then
+    echo "[!] android-35 platform not found (missing android.jar)."
+    echo "    If you use compileSdk 35, run install_env.sh again"
+    echo "    and choose to install Android SDK Platform 35."
+  fi
+
+  echo
+}
+
+prepare_gradle_args() {
+  EXTRA_GRADLE_ARGS=()
+
+  if is_termux; then
+    # Tentukan SDK root dulu
+    local sdk_root="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+    [ -z "$sdk_root" ] && sdk_root="$PREFIX/opt/android-sdk"
+
+    # Kandidat AAPT2:
+    local aapt2_buildtools="$sdk_root/build-tools/35.0.0/aapt2"
+    local aapt2_termux="/data/data/com.termux/files/usr/bin/aapt2"
+
+    if [ -x "$aapt2_buildtools" ]; then
+      echo "[i] Using build-tools AAPT2: $aapt2_buildtools"
+      EXTRA_GRADLE_ARGS+=("-Pandroid.aapt2FromMavenOverride=$aapt2_buildtools")
+    elif [ -x "$aapt2_termux" ]; then
+      echo "[i] Using Termux AAPT2: $aapt2_termux"
+      EXTRA_GRADLE_ARGS+=("-Pandroid.aapt2FromMavenOverride=$aapt2_termux")
+    else
+      echo "[!] No local AAPT2 found."
+      echo "    Gradle will try Maven AAPT2 (x86_64) → kemungkinan besar FAIL di ARM."
+    fi
   else
-    echo "[i] Android SDK environment detected."
-    echo "    ANDROID_SDK_ROOT: ${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
-    echo
+    echo "[i] Non-Termux environment, using default Maven AAPT2."
   fi
 }
 
@@ -125,7 +181,7 @@ build_menu() {
     1) run_build "normal" ;;
     2) run_build "stacktrace" ;;
     3) run_build "detail" ;;
-    4) return 1 ;; # go back to project selection
+    4) return 1 ;; # back to project selection
     0) echo "Exiting."; exit 0 ;;
     *) echo "[!] Unknown option."; return 0 ;;
   esac
@@ -147,18 +203,20 @@ run_build() {
 
   chmod +x ./gradlew
 
+  prepare_gradle_args
+
   echo "=== Starting build in mode: $mode ==="
   echo
 
   case "$mode" in
     normal)
-      ./gradlew assembleDebug
+      bash ./gradlew "${EXTRA_GRADLE_ARGS[@]}" assembleDebug
       ;;
     stacktrace)
-      ./gradlew assembleDebug --stacktrace
+      bash ./gradlew "${EXTRA_GRADLE_ARGS[@]}" assembleDebug --stacktrace
       ;;
     detail)
-      ./gradlew assembleDebug --stacktrace --info
+      bash ./gradlew "${EXTRA_GRADLE_ARGS[@]}" assembleDebug --stacktrace --info
       ;;
   esac
 

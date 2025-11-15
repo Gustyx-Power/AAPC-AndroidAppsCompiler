@@ -65,7 +65,7 @@ chmod +x androidappscompile.sh
 ```
 3. **Run the environment installer**
 ```shell
-./install_env.sh
+bash install_env.sh
 ```
 During this step:
 - Required Termux packages (OpenJDK, git, unzip, wget, gradle) will be installed.
@@ -91,7 +91,7 @@ Each project should include its own gradlew wrapper and a standard Android modul
 2. Launch the main tool
 From the repository directory (or anywhere, if the script is in your $PATH):
 ```shell
-./androidappscompile.sh
+bash androidappscompile.sh
 ```
 4. Select a project
 The tool will list all projects it detects and ask you to choose a number.

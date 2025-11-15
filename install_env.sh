@@ -135,7 +135,8 @@ if ! grep -q "AndroidAppsCompile SDK/NDK config" "$SHELL_RC" 2>/dev/null; then
     echo "export ANDROID_SDK_ROOT=\"$SDK_DIR\""
     echo "export ANDROID_HOME=\"$SDK_DIR\""
     echo "export NDK_HOME=\"$NDK_DIR\""
-    echo "export PATH=\"\$PATH:\$ANDROID_SDK_ROOT/tools:\$ANDROID_SDK_ROOT/tools/bin:\$ANDROID_SDK_ROOT/platform-tools\""
+    echo "export JAVA_HOME=\"$PREFIX/lib/jvm/java-17-openjdk\""
+    echo "export PATH=\"\$JAVA_HOME/bin:\$PATH:\$ANDROID_SDK_ROOT/tools:\$ANDROID_SDK_ROOT/tools/bin:\$ANDROID_SDK_ROOT/platform-tools\""
   } >> "$SHELL_RC"
   echo "[✓] Environment variables appended to $SHELL_RC"
 else

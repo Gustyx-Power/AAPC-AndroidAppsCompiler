@@ -53,7 +53,7 @@ Developers who want to build Android apps on-device without opening a PC, or who
 
 1. **Clone this repository**
 ```shell
-git clone https://github.com/Gustyx-Power>/AAPC-AndroidAppsCompiler.git
+git clone https://github.com/Gustyx-Power/AAPC-AndroidAppsCompiler.git
 cd AAPC-AndroidAppsCompiler
 ```
 2. **Make the scripts executable**
